@@ -1,0 +1,4 @@
+Hi there,
+
+My name is Nikhil, and i'm a frontend developer with around 2 years of experience in building modern
+and scalable web applications using tech stack like react, tailwind, and next.
