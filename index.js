@@ -1,8 +1,8 @@
-const http = require('http');
-const { requestHandler } = require('./routes');
+const express = require('express');
 
-const server = http.createServer(requestHandler);
+const app = express();
 
-server.listen(3000, () => {
-    console.log("Listening on port 3000...");
-})
+// Start server
+app.listen(3000, () => {
+    console.log('Server is up and running on port 3000! Ready to handle requests.');
+});
