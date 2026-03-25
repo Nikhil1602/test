@@ -1,4 +1,5 @@
 const productService = require("../services/productService");
+const { successResponse, errorResponse } = require("../utils/helper");
 const path = require('path');
 
 const getAllProducts = (req, res) => {
@@ -9,14 +10,30 @@ const getAllProducts = (req, res) => {
 
 const getProductById = (req, res) => {
 
-    return res.send(productService.fetchProductById(req.params.id));
+    const id = req.params.id;
+
+    if (typeof id !== "number") {
+        return errorResponse(res, 400, "Id is invalid!");
+    }
+
+    const msg = productService.fetchProductById(id);
+
+    return successResponse(res, 200, msg);
 
 }
 
 const addProduct = (req, res) => {
 
     const { productName } = req.body;
-    return res.send(productService.addProduct(productName));
+
+    if (productName !== "") {
+        return errorResponse(res, 404, "productName not found!")
+    }
+
+    const msg = productService.addProduct(productName);
+
+    return successResponse(res, 200, msg);
+
 
 }
 
