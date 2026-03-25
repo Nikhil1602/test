@@ -22,10 +22,13 @@ app.listen(4000, () => {
     console.log('Server is running on http://localhost:4000');
 });
 
-// Your mission is to build a Node.js application that serves an HTML file in response to a GET request. The goal is to create a simple and organized Node.js folder setup to integrate HTML using res.sendFile().
+// Your mission is to build a Node.js application that serves an HTML file in response to a GET request.
 // Set up a server using express.
 // Add a GET endpoint (e.g., /api/products) to handle GET requests.
 // Use res.sendFile() to serve an HTML file from your project directory inside folder VIEW.
-// Return the same statement that is returned by the instructor - "Fetching All Products"
-// Keep your project organized and fun to explore!
-// By the end, you’ll have a working example of how to integrate HTML with GET requests, making your server come alive with web content! 🌟
+// Return a form with following attributes:
+// Form Structure:
+// The form should contain a label with the text "Product Name".
+// The label's for attribute and the input's id attribute should both be set to product for consistency and accessibility.
+// The form should include an input field where users can enter the product name. The input field should have the name attribute set to productName.
+// The form should contain a submit button with the content "Add Product".
