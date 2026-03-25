@@ -1,4 +1,4 @@
-const getProducts = (req, res) => {
+const getAllProducts = (req, res) => {
 
     return res.send("Fetching all products");
 
@@ -18,7 +18,7 @@ const addProduct = (req, res) => {
 }
 
 module.exports = {
-    getProducts,
+    getAllProducts,
     getProductById,
     addProduct
 }
