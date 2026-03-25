@@ -10,9 +10,9 @@ const fetchProductById = (id) => {
 
 }
 
-const addProduct = () => {
+const addProduct = (product) => {
 
-    return `Adding a new product`;
+    return `Adding a new product: ${product}`;
 
 }
 

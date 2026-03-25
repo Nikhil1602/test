@@ -15,7 +15,8 @@ const getProductById = (req, res) => {
 
 const addProduct = (req, res) => {
 
-    return res.send(productService.addProduct());
+    const { productName } = req.body;
+    return res.send(productService.addProduct(productName));
 
 }
 
