@@ -2,10 +2,14 @@ const express = require('express');
 const cors = require("cors");
 const sequelize = require("./utils/db");
 
+require("./models");
+
 const userRoutes = require("./routes/userRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const productRoutes = require("./routes/productRoutes");
 const bookRoutes = require("./routes/bookRoutes");
+const blogRoutes = require("./routes/blogRoutes");
+const commentRoutes = require("./routes/commentRoutes");
 
 const app = express();
 
@@ -21,6 +25,8 @@ app.use("/users", userRoutes);
 app.use("/cart", cartRoutes);
 app.use("/products", productRoutes);
 app.use("/books", bookRoutes);
+app.use("/blogs", blogRoutes);
+app.use("/comments", commentRoutes);
 
 app.use((req, res) => {
     res.status(404).send("Page not found");
