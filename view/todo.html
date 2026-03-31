@@ -9,22 +9,27 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <style>
-        body {
-            background: #f4f6f8;
+        * {
+            font-family: cursive, Times, serif;
+            box-sizing: border-box;
         }
 
         .container {
             max-width: 700px;
         }
 
-        .todo-card {
+        .card {
+            border-radius: 12px;
+        }
+
+        .todo-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .todo-text {
-            flex: 1;
+        .todo-text strong {
+            font-size: 16px;
         }
 
         .completed {
@@ -34,107 +39,124 @@
     </style>
 </head>
 
-<body>
+<body class="bg-success">
+
 
     <div class="container mt-5">
 
-        <h2 class="text-center mb-4">Todo Manager</h2>
-
-        <div class="card p-3 mb-4">
-
-            <input class="form-control mb-2" id="todoName" placeholder="Todo Name">
-
-            <input class="form-control mb-2" id="todoDesc" placeholder="Todo Description">
-
-            <button class="btn btn-primary" onclick="addTodo()">Submit</button>
-
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button class="btn btn-warning" onclick="window.history.back()">Go Back</button>
+            <button class="btn btn-warning" onclick="deleteAllTodos()">Reset</button>
         </div>
 
-        <h4>List of Todos</h4>
-        <ul class="list-group mb-4" id="todoList"></ul>
+        <div class="text-center text-white mb-4">
+            <h2>📝 Todo Manager</h2>
+        </div>
 
-        <h4>Todo Completed</h4>
-        <ul class="list-group" id="completedList"></ul>
+        <!-- ADD TODO -->
+        <div class="card shadow p-3 mb-4">
+            <div class="row g-2">
+                <div class="col-md-5">
+                    <input class="form-control" id="todoName" placeholder="Todo title">
+                </div>
+
+                <div class="col-md-5">
+                    <input class="form-control" id="todoDesc" placeholder="Description">
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-success" onclick="addTodo()">Add</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTIVE TODOS -->
+        <div class="card shadow p-3 mb-4">
+            <h5>📌 Active Tasks</h5>
+            <ul class="list-group mt-2" id="todoList"></ul>
+        </div>
+
+        <!-- COMPLETED -->
+        <div class="card shadow p-3">
+            <h5>✅ Completed</h5>
+            <ul class="list-group mt-2" id="completedList"></ul>
+        </div>
 
     </div>
 
     <script>
 
-        const API_URL = "https://crudcrud.com/api/f98d8df9fdbe4e4aba27efcb90d681c1/todos";
+        const API = "http://localhost:4000/api/todos";
 
         document.addEventListener("DOMContentLoaded", loadTodos);
 
-        function loadTodos() {
+        // LOAD
+        async function loadTodos() {
+            const res = await axios.get(API);
 
-            axios.get(API_URL).then(res => {
+            const todos = res.data;
 
-                const todos = res.data;
+            todoList.innerHTML = "";
+            completedList.innerHTML = "";
 
-                document.getElementById("todoList").innerHTML = "";
-                document.getElementById("completedList").innerHTML = "";
+            if (!res.data.length) {
+                todoList.innerHTML = `<li class="list-group-item text-center text-muted">No active todos yet 🚀</li>`;
+                completedList.innerHTML = `<li class="list-group-item text-center text-muted">No completed todos yet 🚀</li>`;
+                return;
+            }
 
-                todos.forEach(todo => {
-
-                    if (todo.completed) {
-                        renderCompleted(todo);
-                    } else {
-                        renderTodo(todo);
-                    }
-
-                });
-
+            todos.forEach(todo => {
+                if (todo.completed) renderCompleted(todo);
+                else renderTodo(todo);
             });
-
         }
 
-        function addTodo() {
+        // ADD
+        async function addTodo() {
 
-            const name = document.getElementById("todoName").value.trim();
-            const desc = document.getElementById("todoDesc").value.trim();
+            const name = todoName.value.trim();
+            const desc = todoDesc.value.trim();
 
             if (!name || !desc) return;
 
-            axios.post(API_URL, {
-                name: name,
+            await axios.post(API, {
+                name,
                 description: desc,
                 completed: false
-            }).then(() => {
-
-                document.getElementById("todoName").value = "";
-                document.getElementById("todoDesc").value = "";
-
-                loadTodos();
             });
+
+            todoName.value = "";
+            todoDesc.value = "";
+
+            loadTodos();
 
         }
 
+        // ACTIVE
         function renderTodo(todo) {
 
             const li = document.createElement("li");
             li.className = "list-group-item";
 
             li.innerHTML = `
-                <div class="todo-card">
+                <div class="todo-item">
                     <div class="todo-text">
                         <strong>${todo.name}</strong><br>
                         <small>${todo.description}</small>
                     </div>
 
                     <div>
-                        <button class="btn btn-success btn-sm me-2" onclick="markDone('${todo._id}','${todo.name}','${todo.description}')">
-                            Done
-                        </button>
-
-                        <button class="btn btn-danger btn-sm" onclick="deleteTodo('${todo._id}')">
-                            Cancel
-                        </button>
+                        <button class="btn btn-success btn-sm me-2" onclick="markDone(${todo.id})">✔</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteTodo(${todo.id})">✖</button>
                     </div>
                 </div>
             `;
 
-            document.getElementById("todoList").appendChild(li);
+            todoList.appendChild(li);
+
         }
 
+        // COMPLETED
         function renderCompleted(todo) {
 
             const li = document.createElement("li");
@@ -145,22 +167,36 @@
                 <small>${todo.description}</small>
             `;
 
-            document.getElementById("completedList").appendChild(li);
-        }
-
-        function deleteTodo(id) {
-
-            axios.delete(`${API_URL}/${id}`).then(() => loadTodos());
+            completedList.appendChild(li);
 
         }
 
-        function markDone(id, name, desc) {
+        // DELETE
+        async function deleteTodo(id) {
 
-            axios.put(`${API_URL}/${id}`, {
-                name: name,
-                description: desc,
+            await axios.delete(`${API}/${id}`);
+            loadTodos();
+
+        }
+
+        // DELETE ALL
+        async function deleteAllTodos() {
+
+            if (!confirm("Delete all todos?")) return;
+
+            await axios.delete(API);
+            loadTodos();
+
+        }
+
+        // MARK DONE
+        async function markDone(id) {
+
+            await axios.put(`${API}/${id}`, {
                 completed: true
-            }).then(() => loadTodos());
+            });
+
+            loadTodos();
 
         }
 

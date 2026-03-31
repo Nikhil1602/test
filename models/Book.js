@@ -5,6 +5,7 @@ const Book = sequelize.define("Book", {
     name: DataTypes.STRING,
     issuedAt: DataTypes.DATE,
     returnAt: DataTypes.DATE,
+    returnedAt: DataTypes.DATE,
     returned: {
         type: DataTypes.BOOLEAN,
         defaultValue: false

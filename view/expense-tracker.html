@@ -2,180 +2,269 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <meta charset="UTF-8" />
     <title>Expense Tracker</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
-        body {
-            background: #f4f4f4;
-        }
-
-        .container {
-            max-width: 600px;
-        }
-
-        .expense-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        * {
+            font-family: cursive, Times, serif;
+            box-sizing: border-box;
         }
     </style>
 </head>
 
-<body>
+<body class="bg-primary">
 
     <div class="container mt-5">
 
-        <h3 class="text-center mb-4">Expense Tracker</h3>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button class="btn btn-warning" onclick="window.history.back()">Go Back</button>
+            <button class="btn btn-warning" onclick="deleteAllExpenses()">Reset</button>
+        </div>
 
-        <div class="card p-4">
+        <div class="card shadow-lg">
+            <div class="card-body">
 
-            <form id="expenseForm">
+                <h2 class="text-center mb-5">Expense Tracker 💸</h2>
 
-                <div class="mb-3">
-                    <label for="category" class="form-label">Category</label>
-                    <select class="form-select" id="category" required>
-                        <option value="">Select Category</option>
-                        <option value="Fuel">Fuel</option>
-                        <option value="Food">Food</option>
-                        <option value="Electricity">Electricity</option>
-                        <option value="Movie">Movie</option>
+                <!-- FORM -->
+                <form id="expense-form" class="row g-2 mb-4">
+                    <div class="col-md-3">
+                        <input type="text" id="name" class="form-control" placeholder="Expense Name" required>
+                    </div>
+
+                    <div class="col-md-2">
+                        <input type="number" id="amount" class="form-control" placeholder="Amount" required>
+                    </div>
+
+                    <div class="col-md-2">
+                        <select id="category" class="form-select" required>
+                            <option value="">Category</option>
+                            <option>Food</option>
+                            <option>Transport</option>
+                            <option>Entertainment</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <input type="date" id="date" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button id="submitBtn" type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                </form>
+
+                <!-- FILTER -->
+                <div class="d-flex justify-content-end mb-3">
+                    <select id="filter" class="form-select w-auto">
+                        <option value="All">All</option>
+                        <option>Food</option>
+                        <option>Transport</option>
+                        <option>Entertainment</option>
+                        <option>Other</option>
                     </select>
                 </div>
 
-                <div class="mb-3">
-                    <label for="description" class="form-label">Description</label>
-                    <input type="text" class="form-control" placeholder="Enter description" id="description" required>
+                <!-- TABLE -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Amount</th>
+                                <th>Category</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="list"></tbody>
+                    </table>
                 </div>
 
+                <!-- TOTAL -->
+                <h5 class="text-end">Total: ₹<span id="total">0</span></h5>
 
-                <div class="mb-3">
-                    <label for="amount" class="form-label">Amount</label>
-                    <input type="number" class="form-control" id="amount" placeholder="Enter amount (₹)" required>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">
-                    Add Expense
-                </button>
-
-            </form>
-
+            </div>
         </div>
-
-        <h4 class="mt-4">Expenses</h4>
-
-        <ul id="expenseList" class="list-group mt-2"></ul>
-
     </div>
 
     <script>
+        const API = "http://localhost:4000/api/expenses";
 
-        const form = document.getElementById("expenseForm")
-        const expenseList = document.getElementById("expenseList")
+        const form = document.getElementById("expense-form");
+        const list = document.getElementById("list");
+        const totalEl = document.getElementById("total");
+        const filter = document.getElementById("filter");
+        const submitBtn = document.getElementById("submitBtn");
 
-        let expenses = []
-        let baseUrl = "http://localhost:3000/expenses"
+        let expenses = [];
+        let editId = null;
 
-        async function loadExpenses() {
-            const res = await fetch(baseUrl);
-            expenses = await res.json();
-            displayExpenses();
+        // 🔥 LOAD DATA ON PAGE LOAD
+        window.addEventListener("DOMContentLoaded", fetchExpenses);
+
+        // ✅ GET ALL EXPENSES
+        async function fetchExpenses() {
+            try {
+                const res = await axios.get(API);
+                expenses = res.data;
+                render(expenses);
+                updateTotal(expenses);
+            } catch (err) {
+                console.error(err);
+            }
         }
 
-        window.onload = loadExpenses;
+        // ✅ ADD EXPENSE
+        form.addEventListener("submit", async (e) => {
 
-        form.addEventListener("submit", async function (e) {
-
-            e.preventDefault()
-
-            const amount = document.getElementById("amount").value
-            const description = document.getElementById("description").value
-            const category = document.getElementById("category").value
+            e.preventDefault();
 
             const expense = {
-                amount,
-                description,
-                category
+                name: form.name.value,
+                amount: parseFloat(form.amount.value),
+                category: form.category.value,
+                date: form.date.value
+            };
+
+            try {
+
+                if (editId) {
+                    // 🔥 UPDATE API
+                    await axios.put(`${API}/${editId}`, expense);
+
+                    editId = null;
+                } else {
+                    // CREATE
+                    await axios.post(API, expense);
+                }
+
+                form.reset();
+                editId = null;
+
+                // 🔥 reset button text
+                submitBtn.innerText = "Add";
+
+                fetchExpenses();
+
+            } catch (err) {
+
+                console.error(err);
+
             }
 
-            await fetch(baseUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ amount, description, category })
-            });
+        });
 
-            loadExpenses();
+        // ✅ DELETE & EDIT
+        list.addEventListener("click", async (e) => {
 
-            form.reset()
+            const id = e.target.dataset.id;
 
-        })
+            // DELETE
+            if (e.target.classList.contains("delete")) {
+                try {
+                    await axios.delete(`${API}/${id}`);
+                    expenses = expenses.filter(exp => exp.id != id);
+                    render(expenses);
+                    updateTotal(expenses);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
 
-        function displayExpenses() {
+            // EDIT
+            if (e.target.classList.contains("edit")) {
 
-            expenseList.innerHTML = ""
+                const id = e.target.dataset.id;
+                const exp = expenses.find(e => e.id == id);
 
-            expenses.forEach((expense, index) => {
+                form.name.value = exp.name;
+                form.amount.value = exp.amount;
+                form.category.value = exp.category;
+                form.date.value = exp.date;
 
-                const li = document.createElement("li")
+                // 🔥 store id for update
+                editId = id;
+                submitBtn.innerText = "Update";
 
-                li.className = "list-group-item expense-item"
+            }
 
-                li.innerHTML = `
-                    <span>₹${expense.amount} - ${expense.description} (${expense.category})</span>
-                    <div>
-                        <button class="btn btn-warning btn-sm me-2" onclick="editExpense(${index})">Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteExpense(${index})">Delete</button>
-                    </div>
+        });
+
+        // ✅ FILTER
+        filter.addEventListener("change", () => {
+
+            if (filter.value === "All") {
+                render(expenses);
+                updateTotal(expenses);
+            } else {
+                const filtered = expenses.filter(e => e.category === filter.value);
+                render(filtered);
+                updateTotal(filtered);
+            }
+
+        });
+
+        // ✅ RENDER
+        function render(data) {
+
+            list.innerHTML = "";
+
+            if (!data.length) {
+                list.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No expenses yet 🚀</td></tr>`;
+                return;
+            }
+
+            const sorted = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sorted.forEach(exp => {
+                list.innerHTML += `
+                    <tr>
+                        <td>${exp.name}</td>
+                        <td>₹${Number(exp.amount).toFixed(2)}</td>
+                        <td>${exp.category}</td>
+                        <td>${formatDate(exp.date)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning edit" data-id="${exp.id}">Edit</button>
+                            <button class="btn btn-sm btn-danger delete" data-id="${exp.id}">Delete</button>
+                        </td>
+                    </tr>
                 `;
-
-                expenseList.appendChild(li)
-
-            })
-
-        }
-
-        async function deleteExpense(index) {
-
-            await fetch(`${baseUrl}/${id}`, {
-                method: "DELETE"
             });
-            loadExpenses();
+        }
+
+        // DELETE ALL
+        async function deleteAllExpenses() {
+
+            if (!confirm("Delete all expenses?")) return;
+            await axios.delete(API);
+            fetchExpenses();
 
         }
 
-        async function updateExpense(id) {
-            const amount = document.getElementById("amount").value;
-            const description = document.getElementById("description").value;
-            const category = document.getElementById("category").value;
-
-            await fetch(`${baseUrl}/${id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ amount, description, category })
-            });
-
-            loadExpenses();
+        // ✅ TOTAL
+        function updateTotal(data) {
+            const total = data.reduce((sum, e) => sum + Number(e.amount), 0);
+            totalEl.textContent = total.toFixed(2);
         }
 
-        function editExpense(index) {
-            const expense = expenses[index];
-            document.getElementById("amount").value = expense.amount;
-            document.getElementById("description").value = expense.description;
-            document.getElementById("category").value = expense.category;
+        function formatDate(dateStr) {
 
-            form.onsubmit = function (e) {
-                e.preventDefault();
-                updateExpense(expense.id);
-                form.onsubmit = null; // Reset to default after editing
-            }
+            const date = new Date(dateStr);
+
+            const day = String(date.getDate()).padStart(2, "0");
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const year = date.getFullYear();
+
+            return `${day}-${month}-${year}`;
+
         }
 
     </script>

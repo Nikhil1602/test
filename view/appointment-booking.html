@@ -1,31 +1,50 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <title>Appointment Booking</title>
 
-
-    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Axios -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
+    <style>
+        body {
+            font-family: cursive;
+        }
 
+        .container {
+            max-width: 1000px;
+        }
+
+        .card {
+            border-radius: 15px;
+        }
+
+        .table th {
+            background-color: #343a40;
+            color: white;
+        }
+    </style>
 </head>
 
-<body class="bg-light">
+<body class="bg-warning">
 
     <div class="container mt-5">
-        <h2 class="text-center mb-4">Appointment Booking</h2>
 
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button class="btn btn-primary" onclick="window.history.back()">Go Back</button>
+            <button class="btn btn-primary" onclick="deleteAll()">Reset</button>
+        </div>
 
-        <!-- Form -->
-        <div class="card p-4 mb-4">
-            <form id="appointmentForm">
-                <input type="hidden" id="userId">
+        <div class="text-center mb-4">
+            <h2>📅 Appointment Booking</h2>
+        </div>
+
+        <!-- FORM -->
+        <div class="card shadow p-4 mb-4">
+            <form id="form">
+                <input type="hidden" id="id">
 
                 <div class="row mb-3">
                     <div class="col">
@@ -45,120 +64,121 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">Submit</button>
+                <button id="submitBtn" class="btn btn-warning w-100">Add Appointment</button>
             </form>
         </div>
 
-        <!-- Table -->
-        <table class="table table-bordered text-center">
-            <thead class="table-dark">
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Age</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="userTable"></tbody>
-        </table>
-
+        <!-- TABLE -->
+        <div class="card shadow p-3">
+            <table class="table table-hover text-center">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Age</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="table"></tbody>
+            </table>
+        </div>
 
     </div>
 
     <script>
-        let editMode = false;
+        const API = "http://localhost:4000/api/appointments";
 
-        let baseURL = "https://localhost:3000";
+        const form = document.getElementById("form");
+        const table = document.getElementById("table");
+        const submitBtn = document.getElementById("submitBtn");
 
-        // Load users on page load
-        window.onload = fetchUsers;
+        let editId = null;
 
-        // Fetch all users
-        async function fetchUsers() {
-            try {
-                const res = await axios.get(`${baseURL}/users`);
-                localStorage.setItem("users", JSON.stringify(res.data));
-                displayUsers(res.data);
-            } catch (err) {
-                console.log(err);
-                const localData = JSON.parse(localStorage.getItem("users")) || [];
-                displayUsers(localData);
-            }
+        // LOAD
+        window.addEventListener("DOMContentLoaded", fetchData);
+
+        async function fetchData() {
+            const res = await axios.get(API);
+            render(res.data);
         }
 
-        // Display users in table
-        function displayUsers(users) {
+        // ADD / UPDATE
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
 
-            const table = document.getElementById("userTable");
+            const data = {
+                name: form.name.value,
+                email: form.email.value,
+                phone: form.phone.value,
+                age: form.age.value
+            };
+
+            if (editId) {
+                await axios.put(`${API}/${editId}`, data);
+                editId = null;
+                submitBtn.innerText = "Add Appointment";
+            } else {
+                await axios.post(API, data);
+            }
+
+            form.reset();
+            fetchData();
+        });
+
+        // RENDER
+        function render(data) {
+
             table.innerHTML = "";
 
-            users.forEach(user => {
-                const row = `
+            if (!data.length) {
+                table.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No appointments yet 🚀</td></tr>`;
+                return;
+            }
+
+            data.forEach(user => {
+
+                table.innerHTML += `
                     <tr>
                         <td>${user.name}</td>
                         <td>${user.email}</td>
                         <td>${user.phone}</td>
                         <td>${user.age}</td>
                         <td>
-                            <button class="btn btn-warning btn-sm" onclick="editUser('${user.id}','${user.name}','${user.email}','${user.phone}','${user.age}')">Edit</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteUser('${user.id}')">Delete</button>
+                            <button class="btn btn-warning btn-sm" onclick="edit(${user.id})">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="remove(${user.id})">Delete</button>
                         </td>
                     </tr>
                 `;
-                table.innerHTML += row;
             });
-
         }
 
-        // Submit form
-        document.getElementById("appointmentForm").addEventListener("submit", async function (e) {
-            e.preventDefault();
+        // EDIT
+        async function edit(id) {
+            const res = await axios.get(`${API}/${id}`);
+            const u = res.data;
 
-            const id = document.getElementById("userId").value;
-            const user = {
-                name: document.getElementById("name").value,
-                email: document.getElementById("email").value,
-                phone: document.getElementById("phone").value,
-                age: document.getElementById("age").value
-            };
+            form.name.value = u.name;
+            form.email.value = u.email;
+            form.phone.value = u.phone;
+            form.age.value = u.age;
 
-            try {
-                if (editMode) {
-                    await axios.put(`${baseURL}/users/${id}`, user);
-                    editMode = false;
-                } else {
-                    await axios.post(`${baseURL}/users`, user);
-                }
-
-                fetchUsers();
-                this.reset();
-            } catch (err) {
-                console.log(err);
-            }
-        });
-
-        // Edit user
-        function editUser(id, name, email, phone, age) {
-            editMode = true;
-
-            document.getElementById("userId").value = id;
-            document.getElementById("name").value = name;
-            document.getElementById("email").value = email;
-            document.getElementById("phone").value = phone;
-            document.getElementById("age").value = age;
+            editId = id;
+            submitBtn.innerText = "Update Appointment";
         }
 
-        // Delete user
-        async function deleteUser(id) {
-            try {
-                await axios.delete(`${baseURL}/users/${id}`);
-                fetchUsers();
-            } catch (err) {
-                console.log(err);
-            }
+        // DELETE
+        async function remove(id) {
+            await axios.delete(`${API}/${id}`);
+            fetchData();
         }
 
+        // DELETE ALL
+        async function deleteAll() {
+            if (!confirm("Delete all appointments?")) return;
+            await axios.delete(API);
+            fetchData();
+        }
     </script>
 
 </body>

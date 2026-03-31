@@ -10,6 +10,9 @@ const productRoutes = require("./routes/productRoutes");
 const bookRoutes = require("./routes/bookRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const commentRoutes = require("./routes/commentRoutes");
+const expenseRoutes = require("./routes/expenseRoutes");
+const todoRoutes = require("./routes/todoRoutes");
+const appointmentRoutes = require("./routes/appointmentRoutes");
 
 const app = express();
 
@@ -21,18 +24,21 @@ app.get("/", (req, res) => {
     res.send("Welcome to the My Projects!");
 });
 
-app.use("/users", userRoutes);
-app.use("/cart", cartRoutes);
-app.use("/products", productRoutes);
-app.use("/books", bookRoutes);
-app.use("/blogs", blogRoutes);
-app.use("/comments", commentRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/books", bookRoutes);
+app.use("/api/blogs", blogRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/expenses", expenseRoutes);
+app.use("/api/todos", todoRoutes);
+app.use("/api/appointments", appointmentRoutes);
 
 app.use((req, res) => {
     res.status(404).send("Page not found");
 })
 
-sequelize.sync().then(() => {
+sequelize.sync({ alter: true }).then(() => {
     console.log("DB synced");
     app.listen(4000, () => console.log("Server running"));
 });

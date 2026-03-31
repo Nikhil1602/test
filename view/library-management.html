@@ -3,96 +3,255 @@
 
 <head>
     <title>Library App</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-
-<body class="p-4">
-
-    <h3>Library Management</h3>
-
-    <input id="bookName" class="form-control mb-2" placeholder="Enter Book Name">
-    <button onclick="addBook()" class="btn btn-primary mb-3">Add Book</button>
-
-    <h4>Active Books</h4>
-    <div id="books" class="row"></div>
-
-    <h4 class="mt-4">Return History</h4>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Issued</th>
-                <th>Returned</th>
-            </tr>
-        </thead>
-        <tbody id="history"></tbody>
-    </table>
-
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
-    <script>
+    <style>
+        body {
+            font-family: cursive, Times, serif;
+        }
 
-        const API = "http://localhost:4000/books";
+        .container {
+            max-width: 1100px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .book-card {
+            border-radius: 12px;
+            transition: 0.3s;
+        }
+
+        .book-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .fine {
+            color: red;
+            font-weight: bold;
+        }
+
+        .no-fine {
+            color: green;
+        }
+    </style>
+</head>
+
+<body class="bg-danger">
+
+    <div class="container mt-5">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button class="btn btn-warning" onclick="window.history.back()">Go Back</button>
+            <button class="btn btn-warning" onclick="deleteAll()">Reset</button>
+        </div>
+
+        <!-- HEADER -->
+        <div class="header">
+            <h2 class="text-white">📚 Library Management System</h2>
+        </div>
+
+        <!-- ADD BOOK -->
+        <div class="card shadow p-4 mb-4">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input id="bookName" class="form-control" placeholder="Enter Book Name">
+                </div>
+                <div class="col-md-4">
+                    <input type="datetime-local" id="issuedAt" class="form-control">
+                </div>
+                <div class="col-md-4 d-grid">
+                    <button onclick="addBook()" class="btn btn-danger">Add Book</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTIVE BOOKS -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="text-white">📖 Active Books</h5>
+        </div>
+
+        <div id="books" class="row"></div>
+
+        <!-- HISTORY -->
+        <div class="card shadow p-3 mt-4">
+            <h5>🧾 Return History</h5>
+
+            <div class="table-responsive">
+                <table class="table table-hover mt-2">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Book Name</th>
+                            <th>Issued Time</th>
+                            <th>Returned Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API = "http://localhost:4000/api/books";
+        let editId = null;
 
         function clearFields() {
-            document.getElementById("bookName").value = "";
+            bookName.value = "";
         }
 
+        // ADD BOOK
         async function addBook() {
-            const name = document.getElementById("bookName").value;
-            await axios.post(API, { name });
-            loadBooks();
+
+            const name = bookName.value.trim();
+            const issued = issuedAt.value;
+
+            if (!name || !issued) return;
+
+            const data = {
+                name,
+                issuedAt: issued
+            };
+
+            if (editId) {
+                await axios.put(`${API}/${editId}`, data);
+                editId = null;
+                submitBtn.innerText = "Add Book";
+            } else {
+                await axios.post(API, data);
+            }
+
             clearFields();
+            loadBooks();
+
         }
 
+        // EDIT BOOK
+        async function editBook(id) {
+
+            const res = await axios.get(`${API}/${id}`);
+            const book = res.data;
+
+            bookName.value = book.name;
+
+            // format for datetime-local input
+            issuedAt.value = book.issuedAt.slice(0, 16);
+
+            editId = id;
+            submitBtn.innerText = "Update Book";
+
+        }
+
+        // DELETE BOOK
+        async function deleteBook(id) {
+
+            if (!confirm("Delete this book?")) return;
+
+            await axios.delete(`${API}/${id}`);
+            loadBooks();
+
+        }
+
+        // LOAD ACTIVE BOOKS
         async function loadBooks() {
+
             const res = await axios.get(API);
             const container = document.getElementById("books");
             container.innerHTML = "";
 
+            if (!res.data.length) {
+                container.innerHTML = `<div class="text-center text-white mt-3 mb-3">No active books yet 🚀</div>`;
+                return;
+            }
+
             res.data.forEach(book => {
 
-                const fine = new Date() > new Date(book.returnAt) ? 300 : 0;
+                const now = new Date();
+                const returnDate = new Date(book.returnAt);
+                const fine = now > returnDate ? 300 : 0;
 
                 container.innerHTML += `
                     <div class="col-md-4">
-                        <div class="card p-3 mb-3">
-                            <h5>${book.name}</h5>
-                            <p>Issued: ${new Date(book.issuedAt).toLocaleTimeString()}</p>
-                            <p>Return By: ${new Date(book.returnAt).toLocaleTimeString()}</p>
-                            <p>Fine: ₹${fine}</p>
-                            <button class="btn btn-success" onclick="returnBook(${book.id})">Return</button>
+                        <div class="card book-card shadow p-3 mb-3">
+                            <h5 class="fw-bold mb-3">${book.name}</h5>
+
+                            <p><strong>Issued:</strong> ${new Date(book.issuedAt).toLocaleString()}</p>
+                            <p><strong>Return By:</strong> ${returnDate.toLocaleString()}</p>
+
+                            <p class="${fine ? 'fine' : 'no-fine'}">
+                                ${fine ? `Fine: ₹${fine}` : 'No Fine'}
+                            </p>
+
+                            <div class="d-flex gap-2 mt-2">
+                                <button class="btn btn-success w-100" onclick="returnBook(${book.id})">
+                                    Return
+                                </button>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-2">
+                                <button class="btn btn-warning w-50" onclick="editBook(${book.id})">
+                                    Edit
+                                </button>
+                                <button class="btn btn-danger w-50" onclick="deleteBook(${book.id})">
+                                    Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
 
             });
+
         }
 
+        // RETURN BOOK
         async function returnBook(id) {
             await axios.post(`${API}/return/${id}`);
             loadBooks();
             loadHistory();
         }
 
+        // LOAD HISTORY
         async function loadHistory() {
+
             const res = await axios.get(`${API}/history`);
             const table = document.getElementById("history");
             table.innerHTML = "";
 
-            res.data.forEach(book => {
+            if (!res.data.length) {
+                table.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No returned books yet 🚀</td></tr>`;
+                return;
+            }
 
+            res.data.forEach(book => {
                 table.innerHTML += `
                     <tr>
                         <td>${book.name}</td>
-                        <td>${new Date(book.issuedAt).toLocaleTimeString()}</td>
-                        <td>${new Date().toLocaleTimeString()}</td>
+                        <td>${new Date(book.issuedAt).toLocaleString()}</td>
+                        <td>${new Date(book.returnedAt || Date.now()).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteHistory(${book.id})">
+                                Delete
+                            </button>
+                        </td>
                     </tr>
                 `;
-
             });
+
         }
 
+        async function deleteHistory(id) {
+            await axios.delete(`${API}/history/${id}`);
+            loadHistory();
+        }
+
+        // INIT
         loadBooks();
         loadHistory();
 
