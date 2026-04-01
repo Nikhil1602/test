@@ -21,6 +21,10 @@ exports.login = async (req, res) => {
         return res.status(404).json({ error: "Auth not found" });
     }
 
+    if (auth.password !== password) {
+        return res.status(401).json({ error: "Invalid password" });
+    }
+
     return res.json({ message: "Login successful", auth });
 };
 
