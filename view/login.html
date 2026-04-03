@@ -105,6 +105,10 @@
                 document.getElementById("email").value = "";
                 document.getElementById("password").value = "";
 
+                setTimeout(() => {
+                    window.location.href = "/test/view/expense-tracker.html";
+                }, 1000);
+
             } catch (err) {
 
                 message.innerHTML = err.response?.data?.message || "❌ Login failed";
