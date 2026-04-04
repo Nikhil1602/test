@@ -246,6 +246,7 @@
 
         }
 
+        // DELETE HISTORY
         async function deleteHistory(id) {
             await axios.delete(`${API}/history/${id}`);
             loadHistory();
