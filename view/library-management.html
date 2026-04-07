@@ -65,7 +65,7 @@
                     <input type="datetime-local" id="issuedAt" class="form-control">
                 </div>
                 <div class="col-md-4 d-grid">
-                    <button onclick="addBook()" class="btn btn-danger">Add Book</button>
+                    <button id="submitBtn" onclick="addBook()" class="btn btn-danger">Add Book</button>
                 </div>
             </div>
         </div>
@@ -102,8 +102,20 @@
         const API = "http://localhost:4000/api/books";
         let editId = null;
 
+        window.addEventListener("DOMContentLoaded", () => {
+            setDefaultDateTime();
+            setMaxDateTime();
+            loadBooks();
+            loadHistory();
+        });
+
         function clearFields() {
             bookName.value = "";
+            setDefaultDateTime();
+        }
+
+        function isFutureDate(dateValue) {
+            return new Date(dateValue) > new Date();
         }
 
         // ADD BOOK
@@ -114,21 +126,32 @@
 
             if (!name || !issued) return;
 
-            const data = {
-                name,
-                issuedAt: issued
-            };
-
-            if (editId) {
-                await axios.put(`${API}/${editId}`, data);
-                editId = null;
-                submitBtn.innerText = "Add Book";
-            } else {
-                await axios.post(API, data);
+            if (isFutureDate(issued)) {
+                alert("Issued date cannot be in the future");
+                return;
             }
 
-            clearFields();
-            loadBooks();
+            const data = { name, issuedAt: issued };
+
+            try {
+
+                if (editId) {
+                    await axios.put(`${API}/${editId}`, data);
+                    editId = null;
+                    document.getElementById("submitBtn").innerText = "Add Book";
+                } else {
+                    await axios.post(API, data);
+                }
+
+                clearFields();
+                loadBooks();
+
+            } catch (e) {
+
+                console.log(e.message);
+
+            }
+
 
         }
 
@@ -140,11 +163,31 @@
 
             bookName.value = book.name;
 
-            // format for datetime-local input
-            issuedAt.value = book.issuedAt.slice(0, 16);
+            const d = new Date(book.issuedAt);
+
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+
+            const hours = String(d.getHours()).padStart(2, "0");
+            const minutes = String(d.getMinutes()).padStart(2, "0");
+
+            issuedAt.value = `${year}-${month}-${day}T${hours}:${minutes}`;
 
             editId = id;
-            submitBtn.innerText = "Update Book";
+
+            document.getElementById("submitBtn").innerText = "Update Book";
+
+        }
+
+        // DELETE ALL
+        async function deleteAll() {
+
+            if (!confirm("Delete all books?")) return;
+
+            await axios.delete(`${API}`);
+            loadBooks();
+            loadHistory();
 
         }
 
@@ -252,9 +295,39 @@
             loadHistory();
         }
 
-        // INIT
-        loadBooks();
-        loadHistory();
+        function setDefaultDateTime() {
+
+            const now = new Date();
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const day = String(now.getDate()).padStart(2, "0");
+
+            const hours = String(now.getHours()).padStart(2, "0");
+            const minutes = String(now.getMinutes()).padStart(2, "0");
+
+            const formatted = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+            document.getElementById("issuedAt").value = formatted;
+
+        }
+
+        function setMaxDateTime() {
+
+            const now = new Date();
+
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const day = String(now.getDate()).padStart(2, "0");
+
+            const hours = String(now.getHours()).padStart(2, "0");
+            const minutes = String(now.getMinutes()).padStart(2, "0");
+
+            const formatted = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+            document.getElementById("issuedAt").max = formatted;
+
+        }
 
     </script>
 

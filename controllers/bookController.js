@@ -55,10 +55,38 @@ exports.getOne = async (req, res) => {
 
 // UPDATE
 exports.update = async (req, res) => {
-    const book = await Book.findByPk(req.params.id);
-    if (!book) return res.status(404).json({ msg: "Not found" });
-    await book.update(req.body);
-    res.json(book);
+
+    try {
+
+        const book = await Book.findByPk(req.params.id);
+
+        if (!book) {
+            return res.status(404).json({ message: "Not found" });
+        }
+
+        const { name, issuedAt } = req.body;
+
+        let updatedData = { name };
+
+        // ✅ If issuedAt is updated → also update returnAt
+        if (issuedAt) {
+
+            const issueTime = new Date(issuedAt);
+
+            updatedData.issuedAt = issueTime;
+            updatedData.returnAt = new Date(issueTime.getTime() + 60 * 60 * 1000);
+        }
+
+        await book.update(updatedData);
+
+        res.json(book);
+
+    } catch (err) {
+
+        res.status(500).json({ error: err.message });
+
+    }
+
 };
 
 // DELETE
@@ -71,6 +99,7 @@ exports.delete = async (req, res) => {
 
 // DELETE HISTORY
 exports.deleteHistory = async (req, res) => {
+
     const book = await Book.findByPk(req.params.id);
 
     if (!book || !book.returned) {
@@ -79,4 +108,22 @@ exports.deleteHistory = async (req, res) => {
 
     await book.destroy();
     res.json({ msg: "Deleted history" });
+
+};
+
+// DELETE ALL
+exports.deleteAll = async (req, res) => {
+
+    try {
+
+        await Book.destroy({ where: {}, truncate: true });
+
+        res.json({ message: "All books deleted successfully" });
+
+    } catch (err) {
+
+        res.status(500).json({ error: err.message });
+
+    }
+
 };

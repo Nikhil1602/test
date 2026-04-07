@@ -10,6 +10,7 @@ router.post("/return/:id", bookController.returnBook);
 router.get("/:id", bookController.getOne);
 router.put("/:id", bookController.update);
 router.delete("/:id", bookController.delete);
+router.delete("/", bookController.deleteAll);
 
 router.delete("/history/:id", bookController.deleteHistory);
 
