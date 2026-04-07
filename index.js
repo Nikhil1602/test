@@ -19,10 +19,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static('view'));
 
 app.get("/", (req, res) => {
-    res.send("Welcome to the My Projects!");
+    res.sendFile(__dirname + "/index.html");
 });
 
 app.use("/api/users", userRoutes);

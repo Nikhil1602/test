@@ -16,7 +16,19 @@
         <button type="submit">Add Product</button>
     </form>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="/js/product.js"></script>
+    <script>
+        const onSubmitHandler = (event) => {
+            event.preventDefault();
+            const product = event.target.productName.value;
+            const obj = {
+                "productName": product
+            }
+
+            axios.post("http://localhost:4000/products", obj).then(res => {
+                console.log(res.data);
+            });
+        }
+    </script>
 </body>
 
 </html>
